@@ -1,0 +1,117 @@
+quarkus:
+  application:
+    name: rest-fights
+  http:
+    cors:
+      ~: true
+      origins: "*"
+    port: ${FIGHTS_SERVICE_PORT}
+    test-port: 0
+  jackson:
+    serialization-inclusion: non-empty
+  mongodb:
+    metrics:
+      enabled:
+        true
+    hosts: ${FIGHTS_DB_HOST}
+    database: ${FIGHTS_DB_SCHEMA}
+    credentials:
+      username: ${FIGHTS_DB_USER}
+      password: ${FIGHTS_DB_PWD}
+  liquibase-mongodb:
+    migrate-at-start: false
+  rest-client:
+    hero-client:
+      url: "stork://hero-service"
+  stork:
+    hero-service:
+      service-discovery:
+        type: static
+        address-list: "${HERO_SERVICE_HOST}:${HERO_SERVICE_PORT}"
+    villain-service:
+      service-discovery:
+        type: static
+        address-list: "${VILLAIN_SERVICE_HOST}:${VILLAIN_SERVICE_PORT}"
+  log:
+    level: INFO
+    category:
+      "io.quarkus.sample.superheroes":
+        level: DEBUG
+    console:
+      format: "%d{HH:mm:ss} %-5p traceId=%X{traceId}, parentId=%X{parentId}, spanId=%X{spanId}, sampled=%X{sampled} [%c{2.}] (%t) %s%e%n"
+      level: INFO
+      darken: 1
+  otel:
+    resource:
+      attributes: "app=${quarkus.application.name},application=fights-service,system=quarkus-super-heroes"
+    exporter:
+      otlp:
+        traces:
+          endpoint: ${OTEL_URL}
+  smallrye-openapi:
+    info-title: Fights API
+    info-description: This API performs fights between a Hero and a Villain
+    info-version: 1.0
+    info-contact-name: Quarkus
+    info-contact-url: https://github.com/quarkusio
+  swagger-ui:
+    always-include: true
+  devservices:
+    enabled: false
+fight:
+  hero:
+    fallback:
+      name: Fallback hero
+      picture: "https://dummyimage.com/280x380/1e8fff/ffffff&text=Fallback+Hero"
+      powers: Fallback hero powers
+      level: 1
+  villain:
+    fallback:
+      name: Fallback Villain
+      picture: "https://dummyimage.com/280x380/1e8fff/ffffff&text=Fallback+Villain"
+      powers: Fallback villain powers
+      level: 45
+    client-base-url: stork://villain-service
+mp:
+  messaging:
+    connector:
+      smallrye-kafka:
+        apicurio:
+          registry:
+            url: ${APICURIO_URL}
+    outgoing:
+      fights:
+        connector: smallrye-kafka
+        topic: fights
+        apicurio:
+          registry: 
+            auto-register: true
+kafka:
+  bootstrap:
+    servers: ${KAFKA_BOOTSTRAP}
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        format: "%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n"
+        level: DEBUG
+
+"%test":
+  quarkus:
+    log:
+      console:
+        format: "%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n"
+        level: DEBUG
+  mp:
+    messaging:
+      outgoing:
+        fights:
+          connector: smallrye-in-memory
+          merge: true
+
+"%prod":
+  quarkus:
+    hibernate-orm:
+      sql-load-script: import.sql
+
